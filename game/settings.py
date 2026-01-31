@@ -1,0 +1,46 @@
+# settings.py
+import pygame
+
+# Screen
+SCREEN_WIDTH = 480
+SCREEN_HEIGHT = 800
+FPS = 60
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (60, 200, 120)
+RED = (220, 40, 40)
+YELLOW = (240, 200, 40)
+BLUE = (60, 150, 240)
+GRAY = (120, 120, 120)
+
+# Player
+PLAYER_SPEED = 300
+PLAYER_WIDTH = 48
+PLAYER_HEIGHT = 48
+PLAYER_START_POS = (SCREEN_WIDTH // 2, SCREEN_HEIGHT - 90)
+PLAYER_FIRE_DELAY = 250  # milliseconds
+
+# Bullet
+BULLET_SPEED = -10
+ENEMY_BULLET_SPEED = 4
+BULLET_WIDTH = 6
+BULLET_HEIGHT = 12
+
+# Enemy
+ENEMY_ROWS = 5
+ENEMY_PER_ROW = 7
+ENEMY_X_GAP = 56
+ENEMY_Y_GAP = 44
+ENEMY_START_Y = 40
+ENEMY_SPEED_X = 1.0
+ENEMY_DESCEND = 12
+ENEMY_FIRE_CHANCE = 0.0025  # chance per frame for each enemy to fire
+
+# Explosion
+EXPLOSION_LIFETIME = 400  # ms
+
+# Fonts
+pygame.font.init()
+FONT_NAME = pygame.font.get_default_font()
