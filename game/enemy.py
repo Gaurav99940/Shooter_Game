@@ -15,7 +15,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(x,y))
         self.pos = Vector2(self.rect.topleft)
         self.move_dir = 1  # 1 right, -1 left
-
+ 
     def _draw_enemy(self):
         w, h = 40, 28
         surf = self.image

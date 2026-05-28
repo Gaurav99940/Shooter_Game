@@ -1,233 +1,220 @@
-# main.py
 import pygame
 import sys
 import random
-import time
-
 from game.settings import *
 from game.player import Player
 from game.enemy import Enemy
 from game.bullet import Bullet
 from game.explosion import Explosion
 
+class Game:
+    def __init__(self):
+        pygame.init()
+        pygame.mixer.init() # Professional sound engine
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption("GALACTIC VOYAGER: ACE SHOOTER")
+        self.clock = pygame.time.Clock()
+        
+        # UI Assets
+        self.font = pygame.font.SysFont("Impact", 24)
+        self.big_font = pygame.font.SysFont("Impact", 64)
+        
+        # Parallax Background Stars
+        self.stars = [[random.randint(0, SCREEN_WIDTH), random.randint(0, SCREEN_HEIGHT), random.uniform(0.5, 3)] for _ in range(100)]
+        
+        self.reset_game()
 
-# ---------------- UI SCREENS ----------------
-def draw_menu(screen, font, big_font):
-    title = big_font.render("AIRPLANE SHOOTER", True, (255, 255, 0))
-    start = font.render("Press ENTER to Start", True, (255, 255, 255))
-    quit_text = font.render("Press ESC to Quit", True, (255, 255, 255))
-    screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 200))
-    screen.blit(start, (SCREEN_WIDTH // 2 - start.get_width() // 2, 300))
-    screen.blit(quit_text, (SCREEN_WIDTH // 2 - quit_text.get_width() // 2, 340))
+    def reset_game(self):
+        """Initializes or restarts the game state"""
+        self.all_sprites = pygame.sprite.Group()
+        self.enemies = pygame.sprite.Group()
+        self.player_bullets = pygame.sprite.Group()
+        self.enemy_bullets = pygame.sprite.Group()
+        self.explosions = pygame.sprite.Group()
 
+        self.player = Player()
+        self.all_sprites.add(self.player)
+        self.spawn_formation()
+        
+        self.score = 0
+        self.state = "MENU" # MENU, PLAYING, PAUSED, LEVEL_COMPLETED, GAME_OVER
+        self.formation_dir = 1
+        self.formation_speed = ENEMY_SPEED_X
 
-def draw_pause(screen, font):
-    text = font.render("PAUSED - Press P to Resume", True, (255, 255, 255))
-    screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
+    def spawn_formation(self):
+        """Creates the grid of enemies"""
+        total_width = (ENEMY_PER_ROW - 1) * ENEMY_X_GAP
+        start_x = (SCREEN_WIDTH - total_width) // 2
+        for row in range(ENEMY_ROWS):
+            y = ENEMY_START_Y + row * ENEMY_Y_GAP
+            for i in range(ENEMY_PER_ROW):
+                x = start_x + i * ENEMY_X_GAP
+                kind = row % 3
+                e = Enemy(x, y, kind)
+                self.enemies.add(e)
+                self.all_sprites.add(e)
 
-
-def draw_level_complete(screen, font):
-    text = font.render("LEVEL COMPLETE! Press ENTER for Next", True, (0, 255, 0))
-    screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2))
-
-
-# ---------------- ENEMY FORMATION ----------------
-def spawn_formation(enemy_group, all_sprites):
-    total_width = (ENEMY_PER_ROW - 1) * ENEMY_X_GAP
-    start_x = SCREEN_WIDTH // 2 - total_width // 2
-    for row in range(ENEMY_ROWS):
-        y = ENEMY_START_Y + row * ENEMY_Y_GAP
-        for i in range(ENEMY_PER_ROW):
-            x = start_x + i * ENEMY_X_GAP
-            kind = row % 3
-            e = Enemy(x, y, kind)
-            enemy_group.add(e)
-            all_sprites.add(e)
-
-
-# ---------------- MAIN GAME ----------------
-def main():
-    pygame.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Airplane Shooter - Python / pygame")
-    clock = pygame.time.Clock()
-
-    all_sprites = pygame.sprite.Group()
-    enemies = pygame.sprite.Group()
-    player_bullets = pygame.sprite.Group()
-    enemy_bullets = pygame.sprite.Group()
-    explosions = pygame.sprite.Group()
-
-    player = Player()
-    all_sprites.add(player)
-    spawn_formation(enemies, all_sprites)
-
-    formation_dir = 1
-    formation_speed = ENEMY_SPEED_X
-
-    score = 0
-    font = pygame.font.Font(FONT_NAME, 20)
-    big_font = pygame.font.Font(FONT_NAME, 40)
-
-    # ---------------- STATES ----------------
-    state = "MENU"  # MENU, PLAYING, PAUSED, LEVEL_COMPLETED, GAME_OVER
-
-    running = True
-    while running:
-        dt = clock.tick(FPS) / 1000
-        now = pygame.time.get_ticks()
-
-        # ---------------- EVENTS ----------------
+    def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
+                pygame.quit()
+                sys.exit()
+            
+            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    running = False
+                    pygame.quit()
+                    sys.exit()
+                
+                if self.state == "MENU" and event.key == pygame.K_RETURN:
+                    self.state = "PLAYING"
+                
+                elif self.state == "PLAYING" and event.key == pygame.K_p:
+                    self.state = "PAUSED"
+                
+                elif self.state == "PAUSED" and event.key == pygame.K_p:
+                    self.state = "PLAYING"
+                
+                elif self.state == "GAME_OVER" and event.key == pygame.K_r:
+                    self.reset_game()
+                    self.state = "PLAYING"
+                
+                elif self.state == "LEVEL_COMPLETED" and event.key == pygame.K_RETURN:
+                    self.spawn_formation()
+                    self.state = "PLAYING"
 
-                if state == "MENU":
-                    if event.key == pygame.K_RETURN:
-                        state = "PLAYING"
-
-                elif state == "PLAYING":
-                    if event.key == pygame.K_p:
-                        state = "PAUSED"
-
-                elif state == "PAUSED":
-                    if event.key == pygame.K_p:
-                        state = "PLAYING"
-
-                elif state == "GAME_OVER":
-                    if event.key == pygame.K_r:
-                        for g in [all_sprites, enemies, player_bullets, enemy_bullets, explosions]:
-                            g.empty()
-                        player = Player()
-                        all_sprites.add(player)
-                        spawn_formation(enemies, all_sprites)
-                        score = 0
-                        state = "PLAYING"
-
-                elif state == "LEVEL_COMPLETED":
-                    if event.key == pygame.K_RETURN:
-                        spawn_formation(enemies, all_sprites)
-                        state = "PLAYING"
+    def update(self, dt, now):
+        if self.state != "PLAYING":
+            return
 
         keys = pygame.key.get_pressed()
+        self.player.update(keys, dt)
 
-        # ---------------- UPDATE ----------------
-        if state == "PLAYING":
-            player.update(keys, dt)
+        # Shooting Logic
+        if keys[pygame.K_SPACE] and self.player.shoot(now):
+            # Pro Tip: Dual Bullets for the player
+            b1 = Bullet((self.player.rect.centerx - 15, self.player.rect.top), BULLET_SPEED, owner='player')
+            b2 = Bullet((self.player.rect.centerx + 15, self.player.rect.top), BULLET_SPEED, owner='player')
+            self.player_bullets.add(b1, b2)
+            self.all_sprites.add(b1, b2)
 
-            if keys[pygame.K_SPACE]:
-                new_bullets = player.shoot(now)
-                for b in new_bullets:
-                    b2 = Bullet((player.rect.centerx - 10, player.rect.top), -10, owner='player')
-                    b3 = Bullet((player.rect.centerx + 10, player.rect.top), -10, owner='player')
-                    player_bullets.add(b, b2, b3)
-                    all_sprites.add(b, b2, b3)
+        # Enemy Movement (Formation Logic)
+        if self.enemies:
+            move_down = False
+            leftmost = min(e.rect.left for e in self.enemies)
+            rightmost = max(e.rect.right for e in self.enemies)
 
-            if enemies:
-                leftmost = min(e.rect.left for e in enemies)
-                rightmost = max(e.rect.right for e in enemies)
-                if rightmost + formation_speed * formation_dir > SCREEN_WIDTH - 10:
-                    formation_dir = -1
-                    for e in enemies:
-                        e.rect.y += ENEMY_DESCEND
-                elif leftmost + formation_speed * formation_dir < 10:
-                    formation_dir = 1
-                    for e in enemies:
-                        e.rect.y += ENEMY_DESCEND
-                for e in enemies:
-                    e.rect.x += formation_speed * formation_dir
+            if rightmost > SCREEN_WIDTH - 20 or leftmost < 20:
+                self.formation_dir *= -1
+                move_down = True
 
-                for e in list(enemies):
-                    if e.try_fire():
-                        b = Bullet(e.rect.midbottom, ENEMY_BULLET_SPEED, owner='enemy')
-                        enemy_bullets.add(b)
-                        all_sprites.add(b)
+            for e in self.enemies:
+                e.rect.x += self.formation_speed * self.formation_dir
+                if move_down:
+                    e.rect.y += ENEMY_DESCEND
+                
+                # Random Enemy Firing
+                if e.try_fire():
+                    eb = Bullet(e.rect.midbottom, ENEMY_BULLET_SPEED, owner='enemy')
+                    self.enemy_bullets.add(eb)
+                    self.all_sprites.add(eb)
 
-            for b in list(player_bullets):
-                b.update()
-                if b.rect.bottom < 0:
-                    b.kill()
-            for b in list(enemy_bullets):
-                b.update()
-                if b.rect.top > SCREEN_HEIGHT:
-                    b.kill()
+        # Update all individual bullets and effects
+        for b in list(self.player_bullets):
+            b.update()
+            if b.rect.bottom < 0: b.kill()
+        
+        for b in list(self.enemy_bullets):
+            b.update()
+            if b.rect.top > SCREEN_HEIGHT: b.kill()
+            
+        for ex in self.explosions:
+            ex.update(now)
 
-            hits = pygame.sprite.groupcollide(enemies, player_bullets, True, True)
-            for hit in hits:
-                score += 10
-                ex = Explosion(hit.rect.center, now, lifetime=EXPLOSION_LIFETIME)
-                explosions.add(ex)
-                all_sprites.add(ex)
+        self.check_collisions(now)
 
-            if pygame.sprite.spritecollide(player, enemy_bullets, True):
-                player.hit()
-                ex = Explosion(player.rect.center, now, lifetime=EXPLOSION_LIFETIME)
-                explosions.add(ex)
-                all_sprites.add(ex)
-                if player.lives <= 0:
-                    state = "GAME_OVER"
+    def check_collisions(self, now):
+        # 1. Player bullets hit enemies
+        hits = pygame.sprite.groupcollide(self.enemies, self.player_bullets, True, True)
+        for hit in hits:
+            self.score += 50
+            ex = Explosion(hit.rect.center, now, EXPLOSION_LIFETIME)
+            self.explosions.add(ex)
+            self.all_sprites.add(ex)
 
-            if pygame.sprite.spritecollide(player, enemies, False):
-                player.lives = 0
-                ex = Explosion(player.rect.center, now, lifetime=EXPLOSION_LIFETIME)
-                explosions.add(ex)
-                all_sprites.add(ex)
-                state = "GAME_OVER"
+        # 2. Enemy bullets hit player
+        if pygame.sprite.spritecollide(self.player, self.enemy_bullets, True):
+            self.player.hit()
+            self.all_sprites.add(Explosion(self.player.rect.center, now, EXPLOSION_LIFETIME))
+            if self.player.lives <= 0:
+                self.state = "GAME_OVER"
 
-            for ex in list(explosions):
-                ex.update(now)
+        # 3. Enemies crash into player
+        if pygame.sprite.spritecollide(self.player, self.enemies, False):
+            self.state = "GAME_OVER"
 
-            for sprite in all_sprites:
-                if isinstance(sprite, Player):
-                    continue
-                elif isinstance(sprite, Explosion):
-                    sprite.update(now)
-                else:
-                    sprite.update()
+        # 4. Check Level Win
+        if not self.enemies and self.state == "PLAYING":
+            self.state = "LEVEL_COMPLETED"
 
-            # Level complete check
-            if not enemies and state == "PLAYING":
-                state = "LEVEL_COMPLETED"
+    def draw(self):
+        # Professional Parallax Background
+        self.screen.fill((5, 5, 15)) # Deep Space Blue
+        for star in self.stars:
+            star[1] += star[2] # Speed based on depth
+            if star[1] > SCREEN_HEIGHT:
+                star[1] = 0
+                star[0] = random.randint(0, SCREEN_WIDTH)
+            pygame.draw.circle(self.screen, (200, 200, 255), (int(star[0]), int(star[1])), 1)
 
-        # ---------------- DRAW ----------------
-        screen.fill((25, 40, 20))
-        for i in range(0, SCREEN_HEIGHT, 36):
-            pygame.draw.line(screen, (40, 60, 30), (40, i), (40, i + 18), 2)
-            pygame.draw.line(screen, (40, 60, 30), (SCREEN_WIDTH - 40, i), (SCREEN_WIDTH - 40, i + 18), 2)
+        # Draw Entities
+        self.all_sprites.draw(self.screen)
 
-        if state == "MENU":
-            draw_menu(screen, font, big_font)
+        # UI Overlay
+        if self.state == "MENU":
+            self.draw_text("GALACTIC VOYAGER", self.big_font, YELLOW, SCREEN_HEIGHT // 3)
+            self.draw_text("Press ENTER to Start", self.font, WHITE, SCREEN_HEIGHT // 2)
+        
+        elif self.state == "PLAYING":
+            self.draw_ui()
 
-        elif state == "PLAYING":
-            for sprite in all_sprites:
-                screen.blit(sprite.image, sprite.rect)
-            score_surf = font.render(f"SCORE: {score}", True, WHITE)
-            lives_surf = font.render(f"LIVES: {player.lives}", True, WHITE)
-            screen.blit(score_surf, (10, 10))
-            screen.blit(lives_surf, (SCREEN_WIDTH - 110, 10))
+        elif self.state == "PAUSED":
+            self.draw_text("PAUSED", self.big_font, WHITE, SCREEN_HEIGHT // 2)
 
-        elif state == "PAUSED":
-            for sprite in all_sprites:
-                screen.blit(sprite.image, sprite.rect)
-            draw_pause(screen, font)
+        elif self.state == "GAME_OVER":
+            self.draw_text("MISSION FAILED", self.big_font, RED, SCREEN_HEIGHT // 3)
+            self.draw_text(f"FINAL SCORE: {self.score}", self.font, WHITE, SCREEN_HEIGHT // 2)
+            self.draw_text("Press R to Restart", self.font, YELLOW, SCREEN_HEIGHT // 2 + 40)
 
-        elif state == "LEVEL_COMPLETED":
-            draw_level_complete(screen, font)
-
-        elif state == "GAME_OVER":
-            over_surf = big_font.render("GAME OVER", True, YELLOW)
-            info_surf = font.render("Press R to restart or ESC to quit", True, WHITE)
-            screen.blit(over_surf, (SCREEN_WIDTH // 2 - over_surf.get_width() // 2, SCREEN_HEIGHT // 2 - 40))
-            screen.blit(info_surf, (SCREEN_WIDTH // 2 - info_surf.get_width() // 2, SCREEN_HEIGHT // 2 + 10))
+        elif self.state == "LEVEL_COMPLETED":
+            self.draw_text("SECTOR CLEARED", self.big_font, (0, 255, 0), SCREEN_HEIGHT // 3)
+            self.draw_text("Press ENTER for next wave", self.font, WHITE, SCREEN_HEIGHT // 2)
 
         pygame.display.flip()
 
-    pygame.quit()
-    sys.exit()
+    def draw_text(self, text, font, color, y):
+        surf = font.render(text, True, color)
+        rect = surf.get_rect(center=(SCREEN_WIDTH // 2, y))
+        self.screen.blit(surf, rect)
 
+    def draw_ui(self):
+        # Score
+        score_surf = self.font.render(f"SCORE: {self.score}", True, WHITE)
+        self.screen.blit(score_surf, (20, 20))
+        
+        # Health Bar (Professional UI)
+        pygame.draw.rect(self.screen, (50, 50, 50), (SCREEN_WIDTH - 150, 25, 120, 15)) # Bar Background
+        health_color = (0, 255, 100) if self.player.lives > 1 else (255, 50, 50)
+        pygame.draw.rect(self.screen, health_color, (SCREEN_WIDTH - 150, 25, self.player.lives * 40, 15))
+        pygame.draw.rect(self.screen, WHITE, (SCREEN_WIDTH - 150, 25, 120, 15), 1) # Border
+
+    def run(self):
+        while True:
+            dt = self.clock.tick(FPS) / 1000.0
+            now = pygame.time.get_ticks()
+            self.handle_events()
+            self.update(dt, now)
+            self.draw()
 
 if __name__ == "__main__":
-    main()
+    game = Game()
+    game.run()
