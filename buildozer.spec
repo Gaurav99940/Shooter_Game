@@ -1,37 +1,56 @@
 [app]
-# App Identity
-title = Galactic Voyager Ace Shooter
+# (str) Title of your application
+title = Galactic Voyager
+
+# (str) Package name
 package.name = galacticvoyager
+
+# (str) Package domain (needed for android packaging)
 package.domain = com.gaurav99940
 
-# Version
+# (str) Source code where the main.py lives
+source.dir = .
+
+# (list) Source files to include (let empty to include all the files)
+source.include_exts = py,png,jpg,kv,atlas,wav,mp3,ogg,dat
+
+# (str) Application versioning
 version = 1.0
 
-# Source
-source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,wav,mp3,ogg
-
-# Requirements
+# (list) Application requirements
+# comma separated e.g. requirements = sqlite3,kivy
 requirements = python3,pygame
 
-# Orientation
+# (str) Supported orientation (one of landscape, sensorLandscape, portrait or all)
 orientation = portrait
 
-# Icon & Splash (create these images)
-# icon.filename = %(source.dir)s/icon.png
-# presplash.filename = %(source.dir)s/presplash.png
+# (bool) Indicate if the application should be fullscreen or not
+fullscreen = 0
 
-# Android
-android.permissions = VIBRATE, INTERNET
+# (list) Permissions
+android.permissions = VIBRATE,INTERNET
+
+# (int) Target Android API
 android.api = 33
+
+# (int) Minimum API supported
 android.minapi = 21
+
+# (str) Android NDK version to use
 android.ndk = 25b
+
+# (bool) Use --private data storage (True) or --dir public storage (False)
+android.private_storage = True
+
+# (bool) Accept SDK license
+android.accept_sdk_license = True
+
+# (str) The Android archs to build for
 android.archs = arm64-v8a, armeabi-v7a
 
-# Build
-android.release_artifact = apk
-log_level = 2
-warn_on_root = 1
+# (bool) Copy library instead of making a libpymodules.so
+android.copy_libs = 1
 
 [buildozer]
 log_level = 2
+warn_on_root = 1
