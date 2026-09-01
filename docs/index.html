@@ -62,7 +62,7 @@ async def custom_site():
     import embed
 
 
-    platform.document.body.style.background = "#7f7f7f"
+    platform.document.body.style.background = "#050512"
 
     import pygame
 
@@ -233,16 +233,16 @@ asyncio.run( custom_site() )
 // this dict is available under PyConfig.config from __main__
 
 config = {
-    xtermjs : "1" ,
+    xtermjs : "0" ,
     _sdl2 : "canvas",
     user_canvas : 0,
     user_canvas_managed : 0,
-    ume_block : 1,
+    ume_block : 0,
     can_close : 0,
     archive : "shooter_game",
-    gui_debug : 3,
+    gui_debug : 0,
     cdn : "https://pygame-web.github.io/archives/0.8/",
-    autorun : 0,
+    autorun : 1,
     PYBUILD : "3.11"
 }
 
@@ -306,7 +306,7 @@ config = {
             font-family: arial;
             margin: 0;
             padding: none;
-            background-color:powderblue;
+            background-color: #050512;
         }
 
         .topright{
