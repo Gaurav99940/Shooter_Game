@@ -896,13 +896,15 @@
     }
 
     function loop(now) {
-      const dt = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
+      const current = typeof now === 'number' ? now : performance.now();
+      const dt = Math.min(Math.max((current - lastTime) / 1000, 0.001), 0.1) || 0.016;
+      lastTime = current;
       update(dt);
       draw();
       requestAnimationFrame(loop);
     }
 
+    lastTime = performance.now();
     requestAnimationFrame(loop);
 
     // PWA Install Prompt
