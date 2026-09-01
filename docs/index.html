@@ -1,479 +1,929 @@
-<html lang="en-us"><script src="https://pygame-web.github.io/archives/0.8/pythons.js" type=module id="site" data-python="cpython3.11" data-os="vtx,fs,snd,gui" async defer>#<!--
-
-print("""
-Loading shooter_game from shooter_game.apk
-    Pygbag Version : 0.8.6
-    Template Version : 0.8.3
-    Python  : 3.11
-    CDN URL : https://pygame-web.github.io/archives/0.8/
-    Screen  : 1280x720
-    Title   : shooter_game
-    Folder  : shooter_game
-    Authors : pgw
-    SPDX-License-Identifier: cookiecutter.spdx
-
-""")
-
-
-# screen pixels (real, hardware)
-WIDTH=1024  # 1280
-HEIGHT=600  # 720
-
-# reference/idealized screen pixels
-REFX = 1980
-REFY = 1080
-
-def u(real, ref, v):
-    if abs(v)<0.9999999:
-        result = int( (float(real)/100.0) * (v*1000))
-        if v<0:
-            return real-result
-        return result
-    return int( (real/ref) * v )
-
-def ux(*argv):
-    global WIDTH, REFX
-    acc = 0
-    for v in argv:
-        acc += u(WIDTH, REFX, v)
-    return acc
-
-def uy(*argv):
-    global HEIGHT, REFY
-    acc = 0
-    for v in argv:
-        acc += u(HEIGHT, REFY, v)
-    return acc
-
-
-
-
-# do not rename
-async def custom_site():
-
-    import sys
-    import asyncio
-    import platform
-    import json
-    from pathlib import Path
-
-
-
-    import embed
-
-
-    platform.document.body.style.background = "#050512"
-
-    import pygame
-
-    def compose():
-        pygame.display.update()
-        window.chromakey(None, *screen.get_colorkey(), 40)
-
-    pygame.init()
-    pygame.font.init()
-
-    screen = pygame.display.set_mode([ux(.100),uy(.100)], pygame.SRCALPHA, 32)
-    screen.set_colorkey( (0,0,0,0), pygame.RLEACCEL )
-    screen.fill( (0,0,0,0) )
-
-    compose()
-
-    platform.window.transfer.hidden = true
-    platform.window.canvas.style.visibility = "visible"
-
-
-
-    apk = "shooter_game.apk"
-
-    bundle = "shooter_game"
-
-    # the C or js loader could do that but be explicit.
-    appdir = Path(f"/data/data/{bundle}") # /data/data/shooter_game
-    appdir.mkdir()
-
-
-    # mount apk
-
-    cfg = {
-        "io": "url",
-        "type":"mount",
-        "mount" : {
-            "point" : appdir.as_posix(),
-            "path" : "/",
-        },
-        "path" : f"/ => {appdir.as_posix()}",
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Galactic Voyager: Ace Shooter</title>
+  <meta name="theme-color" content="#050512">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+      touch-action: none;
     }
-
-
-    track = platform.window.MM.prepare(apk, json.dumps(cfg))
-
-    marginx = ux(.020) # 20%
-    marginy = uy(.045) # 45%
-
-
-    def pg_bar(pos):
-        nonlocal marginx, marginy
-        # resolution of progress bar, recalculate since it may not be know yet.
-        total = track.len or 10  # avoid div0
-        slot = ux(.060)/ total # 60%
-
-        pygame.draw.rect(screen,(10,10,10),( marginx-ux(10), marginy-uy(10), (total*slot)+ux(20), uy(110) ) )
-        pygame.draw.rect(screen,(0,255,0), ( marginx, marginy, track.pos*slot, uy(90)) )
-
-    # wait until zip mount + overlayfs is complete
-    while not track.ready:
-        pg_bar(track.pos)
-        compose()
-        await asyncio.sleep(.1)
-
-    # fill it up in case it was cached and instant download
-    pg_bar(track.len)
-    compose()
-
-
-    # preloader will change dir and prepend it to sys.path
-    platform.run_main(PyConfig, loaderhome= appdir / "assets", loadermain=None)
-
-
-    # wait preloading complete
-    # that includes images and wasm compilation of bundled modules
-    while embed.counter()<0:
-        await asyncio.sleep(.1)
-
-    main = appdir / "assets" / "main.py"
-
-    # start async top level machinery and add a console.
-    await TopLevel_async_handler.start_toplevel(platform.shell, console=window.python.config.debug)
-
-    # now that apk is mounted we have access to font cache
-    # but we need to fill __file__ that is not yet set
-    __import__(__name__).__file__ = str(main)
-
-
-    # now make a prompt
-    fnt = pygame.sysfont.SysFont("freesans",  uy(80) )
-
-    def ui_callback(pkg, error=None):
-        nonlocal fnt
-        if error:
-            prompt = fnt.render(f"{error}", True, "black")
-        else:
-            prompt = fnt.render(f"Setting [{pkg}] up", True, "black")
-        pg_bar(track.len)
-        screen.blit(prompt, ( marginx+ ux(80), marginy - uy(10) ) )
-        compose()
-
-    # test/wait if user media interaction required
-    if not platform.window.MM.UME:
-
-        # now make a prompt
-        fnt = pygame.sysfont.SysFont("freesans",  uy(80) )
-        prompt = fnt.render("Ready to start !", True, "blue")
-        pg_bar(track.len)
-        screen.blit(prompt, ( marginx+ ux(80), marginy - uy(10) ) )
-        compose()
-        print("""
-        * Waiting for media user engagement : please click/touch page *
-    """)
-        while not platform.window.MM.UME:
-            await asyncio.sleep(.1)
-
-    # cleanup
-    screen.fill( (0,0,0,0) )
-    pygame.display.flip()
-
-    await shell.runpy(main, callback=ui_callback)
-
-
-
-import asyncio
-
-asyncio.run( custom_site() )
-
-
-
-
-
-
-
-
-
-
-
-
-# BEGIN BLOCK
-#
-# now this is the html part you can (and should) customize
-# It is not mandatory : pygame-script when it reads the first line (also called
-# shebang ) of above code create absolute minimal widget set
-# required for running with default rules
-#
-# do not alter that comment block it is separating python code from html code
-# =============================================================================
-# --></script><head><!--
-//=============================================================================
-//
-//
-//
-//
-//
-//
-//
-
-    {%- if cookiecutter.comment != "" -%}
-{{cookiecutter.comment}}
-    {% endif %}
-
---><script type="application/javascript">
-// END BLOCK
-
-
-
-// this dict is available under PyConfig.config from __main__
-
-config = {
-    xtermjs : "0" ,
-    _sdl2 : "canvas",
-    user_canvas : 0,
-    user_canvas_managed : 0,
-    ume_block : 0,
-    can_close : 0,
-    archive : "shooter_game",
-    gui_debug : 0,
-    cdn : "https://pygame-web.github.io/archives/0.8/",
-    autorun : 1,
-    PYBUILD : "3.11"
-}
-
-</script>
-
-    <title>shooter_game</title>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="height=device-height, initial-scale=1.0">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
-
-    <link rel="prefetch" href="https://pygame-web.github.io/archives/0.8/pythonrc.py">
-    <link rel="prefetch" href="https://pygame-web.github.io/archives/0.8/vt/xterm.js">
-    <link rel="prefetch" href="https://pygame-web.github.io/archives/0.8/vt/xterm-addon-image.js">
-    <link rel="prefetch" href="https://pygame-web.github.io/archives/0.8/vt/xterm-addon-image.js">
-
-
-    <link rel="icon" type="image/png" href="favicon.png" sizes="16x16">
-
-    <style>
-        #status {
-            display: inline-block;
-            vertical-align: top;
-            margin-top: 20px;
-            margin-left: 30px;
-            font-weight: bold;
-            color: rgb(120, 120, 120);
-        }
-
-        #progress {
-            height: 20px;
-            width: 300px;
-        }
-
-        div.emscripten { text-align: center; }
-        div.emscripten_border { border: 1px solid black; }
-        div.thick_border { border: 4px solid black; }
-
-        /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-        /* average size of droid screen 470dp x 320dp  */
-        canvas.emscripten {
-            border: 0px none;
-            background-color: transparent;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-
-            padding: 0;
-            margin: 0 auto;
-
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-
-        body {
-            font-family: arial;
-            margin: 0;
-            padding: none;
-            background-color: #050512;
-        }
-
-        .topright{
-           position:absolute;
-           top:0px;
-           right:0px;
-        }
-
-        .bottomright {
-            position:absolute;
-            top: 40%;
-            right: 0px;
-        }
-
-        .center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .trinfo{
-           position:relative;
-           right:0px;
-           border: 1px solid black;
-        }
-
-        .framed{
-           position:relative;
-           top:150px;
-           right:10px;
-           border: 1px solid black;
-        }
-    </style>
-
-    <script src="https://pygame-web.github.io/archives/0.8//browserfs.min.js"></script>
-
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #03030c;
+      font-family: 'Impact', 'Arial Black', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #gameContainer {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 480px;
+      max-height: 800px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 0 30px rgba(0, 200, 255, 0.2);
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #050512;
+      display: block;
+    }
+    #installBanner {
+      position: absolute;
+      bottom: 15px;
+      background: rgba(0, 220, 255, 0.9);
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: bold;
+      display: none;
+      cursor: pointer;
+      box-shadow: 0 0 15px #00dcff;
+      z-index: 100;
+    }
+  </style>
 </head>
-
 <body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="480" height="800"></canvas>
+    <div id="installBanner">📲 Install Mobile App</div>
+  </div>
 
-    <div id="transfer" align=center>
-<!--        <div class="spinner" id='spinner'></div> -->
-        <div class="emscripten" id="status">Downloading...</div>
-        <div class="emscripten">
-            <progress value="0" max="100" id="progress"></progress>
-        </div>
-    </div>
+  <script>
+    // ── AUDIO SYNTHESIZER (WebAudio API) ───────────────────────────────────
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
 
-
-    <canvas class="emscripten" id="canvas"
-width="1px"
-height="1px"
-    oncontextmenu="event.preventDefault()" tabindex=1>
-    </canvas>
-
-    <div id=html></div>
-
-    <div id=crt  class=bottomright >
-
-        <div id="system" hidden>
-            <div class="button-container">
-                <button id="aiostop" disabled>AIO ⏏︎</button>
-                <button id="aiopaused_true" disabled>AIO ■</button>
-                <button id="aiopaused_false" disabled>AIO ▶</button>
-                <button id="pygame_mixer_music_pause" disabled>Music ■</button>
-            </div>
-
-            <div class="button-container">
-                <div id=load_min>min</div>
-                <div id=load_avg>avg</div>
-                <div id=load_max>max</div>
-              <button id="load_rst" disabled>RESET</button>
-            </div>
-
-            <div id="level">(battery level unknown)</div>
-            <div id="stateBattery">(charging state unknown)</div>
-
-        </div>
-
-        <div id=box class="emscripten_border" hidden=true>
-
-            <div id="info" class="trinfo"></div>
-
-            <iframe id="iframe" class="framed" name="iframe"
-width="470px" height="90%"
-allowtransparency="true"
-style="z-index: 10; style="background: #FFFFFF;"
-frameborder="1"
-                allowfullscreen="true"
-                webkitallowfullscreen="true"
-                msallowfullscreen="true"
-                mozallowfullscreen="true"
-                sandbox="allow-same-origin allow-top-navigation allow-scripts allow-pointer-lock"
-                allow="autoplay; fullscreen *; geolocation; microphone; camera; midi; monetization; xr-spatial-tracking; gamepad; gyroscope; accelerometer; xr; cross-origin-isolated"
-                src="https://pygame-web.github.io/archives/0.8/empty.html"
-                scrolling="yes">
-            </iframe>
-        </div>
-
-    </div>
-
-
-    <div id="dlg" hidden>
-        <input type="file" id="dlg_multifile" multiple accept="image/*">
-        <label for="dlg_multifile">Select files</label>
-    </div>
-
-    <div id="pyconsole">
-        <div id="terminal" tabIndex=1 align="left"></div>
-    </div>
-
-    <script type="application/javascript">
-
-    async function custom_onload(debug_hidden) {
-        // this is called before anythinh python is loaded
-        // make your js customization here
-        console.log(__FILE__, "custom_onload")
-
-        pyconsole.hidden = debug_hidden
-        system.hidden = debug_hidden
-        transfer.hidden = debug_hidden
-        info.hidden = debug_hidden
-        box.hidden =  debug_hidden
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
     }
 
-    function custom_prerun(){
-        // no python main and no (MEMFS + VFS) yet.
-        console.log(__FILE__, "custom_prerun")
-
+    function playTone(freq, type, duration, vol = 0.3) {
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
     }
 
-    function custom_postrun(){
-        // python main and no VFS filesystem yet.
-        console.log(__FILE__, "custom_postrun")
-
+    function playLaser() {
+      if (!audioCtx) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+      } catch(e) {}
     }
 
-    function debug() {
-        // allow to gain access to dev tools from js console
-        // but only on desktop. difficult to reach when in iframe
-        python.config.debug = true
-        custom_onload(false)
-        Module.PyRun_SimpleString("shell.uptime()")
-        window_resize()
+    function playExplosion() {
+      playTone(90, 'square', 0.25, 0.4);
     }
 
-    function info_inline(data){
-        document.getElementById("info").innerHTML = data
+    function playPowerup() {
+      playTone(587, 'sine', 0.1, 0.3);
+      setTimeout(() => playTone(880, 'sine', 0.2, 0.3), 80);
     }
 
-    function info_online(url) {
-        // display info about current APK
-        fetch( url /*, options */)
-            .then((response) => response.text())
-            .then((html) => {
-                info_inline(html);
-        })
-        .catch((error) => {
-            console.warn(error);
+    function playLevelUp() {
+      playTone(523, 'sine', 0.15, 0.3);
+      setTimeout(() => playTone(659, 'sine', 0.15, 0.3), 120);
+      setTimeout(() => playTone(784, 'sine', 0.3, 0.3), 240);
+    }
+
+    function playGameOver() {
+      playTone(220, 'sawtooth', 0.2, 0.4);
+      setTimeout(() => playTone(164, 'sawtooth', 0.4, 0.4), 180);
+    }
+
+    // ── GAME CONSTANTS & STATE ─────────────────────────────────────────────
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const WIDTH = 480;
+    const HEIGHT = 800;
+
+    let state = "MENU"; // MENU, PLAYING, PAUSED, LEVEL_COMPLETED, GAME_OVER
+    let score = 0;
+    let wave = 1;
+    let highScore = parseInt(localStorage.getItem('gv_highscore') || '0');
+    let screenShake = 0;
+    let bannerText = "";
+    let bannerColor = "#fff";
+    let bannerTimer = 0;
+    let comboCount = 0;
+    let comboTime = 0;
+    let comboAlpha = 0;
+
+    // ── STARS & BACKGROUND ────────────────────────────────────────────────
+    const stars = [];
+    for (let i = 0; i < 70; i++) {
+      stars.push({
+        x: Math.random() * WIDTH,
+        y: Math.random() * HEIGHT,
+        speed: 0.5 + Math.random() * 2.5,
+        size: Math.random() < 0.2 ? 2 : 1,
+        color: Math.random() < 0.3 ? '#88ccff' : '#ffffff'
+      });
+    }
+
+    // ── PLAYER ─────────────────────────────────────────────────────────────
+    const player = {
+      x: WIDTH / 2,
+      y: HEIGHT - 100,
+      w: 48,
+      h: 48,
+      speed: 320,
+      lives: 3,
+      lastShot: 0,
+      fireDelay: 220,
+      invFrames: 0,
+      shield: false,
+      triple: false,
+      speedBoost: false,
+      score2x: false,
+      thrustT: 0,
+      touchX: null
+    };
+
+    const powerupTimers = {};
+
+    function applyPowerup(kind) {
+      playPowerup();
+      showBanner("★ " + kind + " ★", "#ffff00", 120);
+      if (kind === "NOVA BOMB") {
+        enemies.forEach(e => {
+          createExplosion(e.x, e.y, 'enemy');
+          score += e.score;
         });
+        enemies.length = 0;
+        divers.length = 0;
+        showBanner("💥 NOVA BOMB! 💥", "#ff8800", 120);
+        return;
+      }
+      if (kind === "SHIELD") player.shield = true;
+      if (kind === "TRIPLE SHOT") player.triple = true;
+      if (kind === "SPEED BOOST") player.speedBoost = true;
+      if (kind === "2X SCORE") player.score2x = true;
+      powerupTimers[kind] = Date.now() + 8000;
     }
 
-    function frame_online(url) {
-        window.frames["iframe"].location = url;
+    function showBanner(text, color = "#fff", duration = 90) {
+      bannerText = text;
+      bannerColor = color;
+      bannerTimer = duration;
     }
 
-    </script>
+    // ── ARRAYS ─────────────────────────────────────────────────────────────
+    const enemies = [];
+    const divers = [];
+    let boss = null;
+    const playerBullets = [];
+    const enemyBullets = [];
+    const explosions = [];
+    const powerups = [];
 
+    // ── FORMATION ──────────────────────────────────────────────────────────
+    let formationDir = 1;
+    let formationSpeed = 1.2;
+
+    function spawnFormation() {
+      enemies.length = 0;
+      divers.length = 0;
+      boss = null;
+      formationSpeed = 1.0 + (wave - 1) * 0.15;
+
+      const rows = Math.min(4 + Math.floor((wave - 1) / 2), 6);
+      const cols = 7;
+      const xGap = 56;
+      const yGap = 44;
+      const startX = (WIDTH - (cols - 1) * xGap) / 2;
+
+      for (let r = 0; r < rows; r++) {
+        const y = 60 + r * yGap;
+        const kind = (r + wave - 1) % 3;
+        for (let c = 0; c < cols; c++) {
+          const x = startX + c * xGap;
+          let color = '#ffd23c'; // Scout
+          let scoreVal = 50;
+          let fireRate = 0.0015;
+          if (kind === 1) { color = '#00dcff'; scoreVal = 100; fireRate = 0.0028; } // Raider
+          if (kind === 2) { color = '#c850ff'; scoreVal = 150; fireRate = 0.0012; } // Stealth
+
+          enemies.push({
+            x, y, w: 42, h: 22,
+            kind, color, score: scoreVal,
+            fireRate,
+            visible: true
+          });
+        }
+      }
+
+      if (wave % 3 === 0) {
+        spawnBoss();
+      }
+    }
+
+    function spawnBoss() {
+      boss = {
+        x: WIDTH / 2,
+        y: 90,
+        w: 110,
+        h: 50,
+        hp: 25 + (wave - 3) * 5,
+        maxHp: 25 + (wave - 3) * 5,
+        speed: 90,
+        dir: 1,
+        lastFire: 0,
+        fireDelay: 1100
+      };
+      showBanner("⚠️ BOSS INCOMING ⚠️", "#ff3333", 150);
+      playTone(200, 'sawtooth', 0.5, 0.4);
+    }
+
+    function spawnDiver() {
+      const x = 40 + Math.random() * (WIDTH - 80);
+      const angle = Math.atan2(HEIGHT, player.x - x);
+      divers.push({
+        x, y: -20,
+        w: 40, h: 20,
+        vx: Math.cos(angle) * 220,
+        vy: Math.sin(angle) * 220,
+        score: 200
+      });
+    }
+
+    function createExplosion(x, y, type = 'enemy') {
+      const colors = type === 'enemy' ? ['#ffd23c', '#ff8800', '#ff2200'] :
+                     type === 'player' ? ['#00dcff', '#88eeff', '#ffffff'] :
+                     ['#ff2222', '#ff8800', '#ffff00'];
+      const particles = [];
+      for (let i = 0; i < 16; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 50 + Math.random() * 180;
+        particles.push({
+          x, y,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          size: 2 + Math.random() * 4,
+          life: 25 + Math.random() * 20,
+          maxLife: 45
+        });
+      }
+      explosions.push({ x, y, r: 8, maxR: 35, life: 25, particles, type });
+      playExplosion();
+    }
+
+    // ── CONTROLS ───────────────────────────────────────────────────────────
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      initAudio();
+      if (state === "MENU" && (e.code === "Enter" || e.code === "Space")) {
+        startGame();
+      } else if (state === "GAME_OVER" && (e.code === "KeyR" || e.code === "Enter")) {
+        resetGame();
+        startGame();
+      } else if (state === "LEVEL_COMPLETED" && (e.code === "Enter" || e.code === "Space")) {
+        nextWave();
+      } else if (e.code === "KeyP" || e.code === "Escape") {
+        if (state === "PLAYING") state = "PAUSED";
+        else if (state === "PAUSED") state = "PLAYING";
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+    // Touch & Mouse Handler
+    function handlePointer(clientX, isDown) {
+      initAudio();
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = WIDTH / rect.width;
+      const x = (clientX - rect.left) * scaleX;
+
+      if (isDown) {
+        if (state === "MENU") {
+          startGame();
+        } else if (state === "GAME_OVER") {
+          resetGame();
+          startGame();
+        } else if (state === "LEVEL_COMPLETED") {
+          nextWave();
+        } else if (state === "PLAYING") {
+          player.x = Math.max(player.w / 2, Math.min(WIDTH - player.w / 2, x));
+        }
+      }
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+      player.touchX = e.clientX;
+      handlePointer(e.clientX, true);
+    });
+    canvas.addEventListener('pointermove', e => {
+      if (e.buttons > 0 && state === "PLAYING") {
+        handlePointer(e.clientX, true);
+      }
+    });
+    canvas.addEventListener('pointerup', () => { player.touchX = null; });
+
+    function startGame() {
+      state = "PLAYING";
+      wave = 1;
+      score = 0;
+      player.lives = 3;
+      spawnFormation();
+      playLevelUp();
+    }
+
+    function nextWave() {
+      wave++;
+      state = "PLAYING";
+      spawnFormation();
+      playLevelUp();
+    }
+
+    function resetGame() {
+      enemies.length = 0;
+      divers.length = 0;
+      playerBullets.length = 0;
+      enemyBullets.length = 0;
+      explosions.length = 0;
+      powerups.length = 0;
+      boss = null;
+      player.x = WIDTH / 2;
+      player.y = HEIGHT - 100;
+      player.shield = false;
+      player.triple = false;
+      player.speedBoost = false;
+      player.score2x = false;
+    }
+
+    // ── GAME LOOP ──────────────────────────────────────────────────────────
+    let lastTime = performance.now();
+
+    function update(dt) {
+      const now = Date.now();
+
+      // Power-up expiration
+      for (const [k, exp] of Object.entries(powerupTimers)) {
+        if (now >= exp) {
+          if (k === "SHIELD") player.shield = false;
+          if (k === "TRIPLE SHOT") player.triple = false;
+          if (k === "SPEED BOOST") player.speedBoost = false;
+          if (k === "2X SCORE") player.score2x = false;
+          delete powerupTimers[k];
+        }
+      }
+
+      // Stars
+      stars.forEach(s => {
+        s.y += s.speed;
+        if (s.y > HEIGHT) { s.y = 0; s.x = Math.random() * WIDTH; }
+      });
+
+      if (state !== "PLAYING") return;
+
+      // Player Movement
+      const spd = player.speed * (player.speedBoost ? 1.5 : 1.0) * dt;
+      if (keys['ArrowLeft'] || keys['KeyA']) player.x -= spd;
+      if (keys['ArrowRight'] || keys['KeyD']) player.x += spd;
+      player.x = Math.max(player.w / 2, Math.min(WIDTH - player.w / 2, player.x));
+      player.thrustT += dt * 10;
+      if (player.invFrames > 0) player.invFrames--;
+
+      // Player Auto / Space Shoot
+      if (keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || player.touchX !== null) {
+        if (now - player.lastShot >= player.fireDelay) {
+          player.lastShot = now;
+          playLaser();
+          if (player.triple) {
+            playerBullets.push({ x: player.x - 16, y: player.y - 20, vy: -650 });
+            playerBullets.push({ x: player.x, y: player.y - 25, vy: -650 });
+            playerBullets.push({ x: player.x + 16, y: player.y - 20, vy: -650 });
+          } else {
+            playerBullets.push({ x: player.x - 12, y: player.y - 20, vy: -650 });
+            playerBullets.push({ x: player.x + 12, y: player.y - 20, vy: -650 });
+          }
+        }
+      }
+
+      // Formation Movement
+      if (enemies.length > 0) {
+        let hitEdge = false;
+        enemies.forEach(e => {
+          if ((e.x > WIDTH - 30 && formationDir === 1) || (e.x < 30 && formationDir === -1)) {
+            hitEdge = true;
+          }
+        });
+
+        if (hitEdge) {
+          formationDir *= -1;
+          enemies.forEach(e => { e.y += 14; });
+        }
+
+        enemies.forEach(e => {
+          e.x += formationSpeed * 60 * formationDir * dt;
+          if (e.kind === 2) {
+            e.visible = (Math.floor(now / 400) % 3 !== 0);
+          }
+          if (Math.random() < e.fireRate) {
+            enemyBullets.push({ x: e.x, y: e.y + 12, vy: 260, color: '#ff4444' });
+          }
+        });
+
+        // Random diver
+        if (Math.random() < 0.003) spawnDiver();
+      }
+
+      // Divers
+      for (let i = divers.length - 1; i >= 0; i--) {
+        const d = divers[i];
+        d.x += d.vx * dt;
+        d.y += d.vy * dt;
+        if (d.y > HEIGHT + 30) divers.splice(i, 1);
+      }
+
+      // Boss
+      if (boss) {
+        boss.x += boss.speed * boss.dir * dt;
+        if (boss.x > WIDTH - boss.w / 2 - 10) boss.dir = -1;
+        if (boss.x < boss.w / 2 + 10) boss.dir = 1;
+
+        if (now - boss.lastFire >= boss.fireDelay) {
+          boss.lastFire = now;
+          enemyBullets.push({ x: boss.x - 30, y: boss.y + 20, vy: 280, color: '#ff6600' });
+          enemyBullets.push({ x: boss.x, y: boss.y + 25, vy: 280, color: '#ff6600' });
+          enemyBullets.push({ x: boss.x + 30, y: boss.y + 20, vy: 280, color: '#ff6600' });
+        }
+      }
+
+      // Bullets
+      for (let i = playerBullets.length - 1; i >= 0; i--) {
+        const b = playerBullets[i];
+        b.y += b.vy * dt;
+        if (b.y < -20) playerBullets.splice(i, 1);
+      }
+
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const b = enemyBullets[i];
+        b.y += b.vy * dt;
+        if (b.y > HEIGHT + 20) enemyBullets.splice(i, 1);
+      }
+
+      // Powerups drift
+      for (let i = powerups.length - 1; i >= 0; i--) {
+        const p = powerups[i];
+        p.y += 120 * dt;
+        if (p.y > HEIGHT + 20) powerups.splice(i, 1);
+      }
+
+      // Explosions
+      for (let i = explosions.length - 1; i >= 0; i--) {
+        const ex = explosions[i];
+        ex.life--;
+        ex.r += 1.2;
+        ex.particles.forEach(p => {
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.life--;
+        });
+        if (ex.life <= 0) explosions.splice(i, 1);
+      }
+
+      // Collisions: Player bullets -> Enemies
+      for (let i = playerBullets.length - 1; i >= 0; i--) {
+        const b = playerBullets[i];
+        let hit = false;
+
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const e = enemies[j];
+          if (!e.visible) continue;
+          if (Math.abs(b.x - e.x) < e.w / 2 && Math.abs(b.y - e.y) < e.h / 2) {
+            createExplosion(e.x, e.y, 'enemy');
+            score += e.score * (player.score2x ? 2 : 1);
+            if (Math.random() < 0.25) {
+              const types = ["SHIELD", "TRIPLE SHOT", "SPEED BOOST", "NOVA BOMB", "2X SCORE"];
+              powerups.push({ x: e.x, y: e.y, kind: types[Math.floor(Math.random() * types.length)] });
+            }
+            enemies.splice(j, 1);
+            hit = true;
+            break;
+          }
+        }
+
+        if (!hit && boss) {
+          if (Math.abs(b.x - boss.x) < boss.w / 2 && Math.abs(b.y - boss.y) < boss.h / 2) {
+            boss.hp--;
+            hit = true;
+            createExplosion(b.x, b.y, 'boss');
+            if (boss.hp <= 0) {
+              score += 1000 * (player.score2x ? 2 : 1);
+              showBanner("🏆 BOSS DEFEATED! +1000 🏆", "#ffff00", 120);
+              boss = null;
+            }
+          }
+        }
+
+        if (hit) playerBullets.splice(i, 1);
+      }
+
+      // Collisions: Enemy bullets -> Player
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const b = enemyBullets[i];
+        if (Math.abs(b.x - player.x) < player.w / 2 - 4 && Math.abs(b.y - player.y) < player.h / 2 - 4) {
+          enemyBullets.splice(i, 1);
+          if (player.invFrames <= 0) {
+            if (player.shield) {
+              player.shield = false;
+              showBanner("🛡️ SHIELD BROKEN!", "#00dcff", 60);
+              playTone(300, 'square', 0.2, 0.3);
+            } else {
+              player.lives--;
+              player.invFrames = 90;
+              screenShake = 15;
+              createExplosion(player.x, player.y, 'player');
+              if (player.lives <= 0) {
+                state = "GAME_OVER";
+                playGameOver();
+                if (score > highScore) {
+                  highScore = score;
+                  localStorage.setItem('gv_highscore', highScore);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Collisions: Powerups -> Player
+      for (let i = powerups.length - 1; i >= 0; i--) {
+        const p = powerups[i];
+        if (Math.abs(p.x - player.x) < player.w / 2 + 10 && Math.abs(p.y - player.y) < player.h / 2 + 10) {
+          applyPowerup(p.kind);
+          powerups.splice(i, 1);
+        }
+      }
+
+      // Win Condition
+      if (enemies.length === 0 && divers.length === 0 && !boss && state === "PLAYING") {
+        state = "LEVEL_COMPLETED";
+        score += wave * 250;
+        playLevelUp();
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem('gv_highscore', highScore);
+        }
+      }
+
+      if (screenShake > 0) screenShake *= 0.9;
+      if (bannerTimer > 0) bannerTimer--;
+    }
+
+    // ── RENDER ─────────────────────────────────────────────────────────────
+    function draw() {
+      ctx.save();
+      if (screenShake > 1) {
+        ctx.translate((Math.random() - 0.5) * screenShake, (Math.random() - 0.5) * screenShake);
+      }
+
+      ctx.fillStyle = '#050514';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+      // Stars
+      stars.forEach(s => {
+        ctx.fillStyle = s.color;
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+      });
+
+      // Powerups
+      powerups.forEach(p => {
+        ctx.fillStyle = '#00dcff';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.kind.slice(0, 3), p.x, p.y + 4);
+      });
+
+      // Player Bullets
+      ctx.fillStyle = '#00dcff';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#00dcff';
+      playerBullets.forEach(b => {
+        ctx.fillRect(b.x - 3, b.y - 8, 6, 16);
+      });
+      ctx.shadowBlur = 0;
+
+      // Enemy Bullets
+      enemyBullets.forEach(b => {
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x - 3, b.y - 6, 6, 12);
+      });
+
+      // UFO Enemies
+      enemies.forEach(e => {
+        if (!e.visible) return;
+        ctx.save();
+        ctx.translate(e.x, e.y);
+        ctx.fillStyle = e.color;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = e.color;
+        // Saucer
+        ctx.beginPath();
+        ctx.ellipse(0, 3, e.w / 2, e.h / 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Dome
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(0, -3, e.w / 4, e.h / 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Divers
+      divers.forEach(d => {
+        ctx.save();
+        ctx.translate(d.x, d.y);
+        ctx.fillStyle = '#ff8800';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ff8800';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, d.w / 2, d.h / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // Boss
+      if (boss) {
+        ctx.save();
+        ctx.translate(boss.x, boss.y);
+        ctx.fillStyle = '#ff2222';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ff0000';
+        ctx.beginPath();
+        ctx.ellipse(0, 5, boss.w / 2, boss.h / 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffaaaa';
+        ctx.beginPath();
+        ctx.ellipse(0, -6, boss.w / 4, boss.h / 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // HP Bar
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#440000';
+        ctx.fillRect(-50, 30, 100, 6);
+        ctx.fillStyle = '#ff2200';
+        ctx.fillRect(-50, 30, (boss.hp / boss.maxHp) * 100, 6);
+        ctx.restore();
+      }
+
+      // Explosions
+      explosions.forEach(ex => {
+        ex.particles.forEach(p => {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      });
+
+      // Player Ship
+      if (state === "PLAYING" || state === "PAUSED") {
+        if (player.invFrames === 0 || Math.floor(player.invFrames / 4) % 2 === 0) {
+          ctx.save();
+          ctx.translate(player.x, player.y);
+          // Thrust flame
+          const flameH = 8 + Math.sin(player.thrustT) * 6;
+          ctx.fillStyle = '#ff8800';
+          ctx.beginPath();
+          ctx.moveTo(-8, 20);
+          ctx.lineTo(0, 20 + flameH);
+          ctx.lineTo(8, 20);
+          ctx.fill();
+
+          // Wings & Hull
+          ctx.fillStyle = '#0088ff';
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = '#00dcff';
+          ctx.beginPath();
+          ctx.moveTo(0, -24);
+          ctx.lineTo(24, 20);
+          ctx.lineTo(0, 14);
+          ctx.lineTo(-24, 20);
+          ctx.closePath();
+          ctx.fill();
+
+          // Cockpit
+          ctx.fillStyle = '#aae2ff';
+          ctx.beginPath();
+          ctx.ellipse(0, -4, 6, 12, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Shield Ring
+          if (player.shield) {
+            ctx.strokeStyle = '#00dcff';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(0, 0, 32, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+
+      // ── HUD ────────────────────────────────────────────────────────────────
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 20px Impact';
+      ctx.fillStyle = '#ffd23c';
+      ctx.fillText(`WAVE ${wave}`, 15, 30);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#00dcff';
+      ctx.font = 'bold 24px Impact';
+      ctx.fillText(`SCORE ${score.toLocaleString()}`, WIDTH / 2, 32);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#aaaaaa';
+      ctx.font = 'bold 16px Impact';
+      ctx.fillText(`BEST ${highScore.toLocaleString()}`, WIDTH - 15, 30);
+
+      // Lives
+      for (let i = 0; i < player.lives; i++) {
+        ctx.fillStyle = '#0088ff';
+        ctx.beginPath();
+        ctx.moveTo(25 + i * 24, HEIGHT - 20);
+        ctx.lineTo(35 + i * 24, HEIGHT - 35);
+        ctx.lineTo(45 + i * 24, HEIGHT - 20);
+        ctx.fill();
+      }
+
+      // Active Powerups HUD
+      let pX = WIDTH - 15;
+      for (const [k, exp] of Object.entries(powerupTimers)) {
+        const sec = Math.max(0, ((exp - Date.now()) / 1000)).toFixed(1);
+        ctx.textAlign = 'right';
+        ctx.font = 'bold 14px Impact';
+        ctx.fillStyle = '#00dcff';
+        ctx.fillText(`${k.slice(0, 3)} ${sec}s`, pX, HEIGHT - 20);
+        pX -= 65;
+      }
+
+      // Banner Notification
+      if (bannerTimer > 0) {
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 26px Impact';
+        ctx.fillStyle = bannerColor;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = bannerColor;
+        ctx.fillText(bannerText, WIDTH / 2, HEIGHT / 2 - 40);
+        ctx.shadowBlur = 0;
+      }
+
+      // ── OVERLAYS ───────────────────────────────────────────────────────────
+      if (state === "MENU") {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 44px Impact';
+        ctx.fillStyle = '#00dcff';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#00dcff';
+        ctx.fillText("GALACTIC VOYAGER", WIDTH / 2, HEIGHT / 2 - 120);
+
+        ctx.font = 'bold 24px Impact';
+        ctx.fillStyle = '#ffd23c';
+        ctx.shadowColor = '#ffd23c';
+        ctx.fillText("ACE SHOOTER", WIDTH / 2, HEIGHT / 2 - 75);
+        ctx.shadowBlur = 0;
+
+        ctx.font = 'bold 20px Impact';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText("TAP OR PRESS ENTER TO START", WIDTH / 2, HEIGHT / 2);
+
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#8888aa';
+        ctx.fillText("Controls: Drag / Arrow Keys to Move", WIDTH / 2, HEIGHT / 2 + 50);
+        ctx.fillText("Tap / Space to Shoot", WIDTH / 2, HEIGHT / 2 + 75);
+
+        if (highScore > 0) {
+          ctx.font = 'bold 18px Impact';
+          ctx.fillStyle = '#ffd23c';
+          ctx.fillText(`HIGH SCORE: ${highScore.toLocaleString()}`, WIDTH / 2, HEIGHT / 2 + 130);
+        }
+      } else if (state === "GAME_OVER") {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 44px Impact';
+        ctx.fillStyle = '#ff2222';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ff0000';
+        ctx.fillText("MISSION FAILED", WIDTH / 2, HEIGHT / 2 - 80);
+        ctx.shadowBlur = 0;
+
+        ctx.font = 'bold 26px Impact';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`FINAL SCORE: ${score.toLocaleString()}`, WIDTH / 2, HEIGHT / 2 - 20);
+
+        ctx.font = 'bold 20px Impact';
+        ctx.fillStyle = '#ffd23c';
+        ctx.fillText("TAP OR PRESS R TO RETRY", WIDTH / 2, HEIGHT / 2 + 40);
+      } else if (state === "LEVEL_COMPLETED") {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 40px Impact';
+        ctx.fillStyle = '#39ff14';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#39ff14';
+        ctx.fillText("SECTOR CLEARED!", WIDTH / 2, HEIGHT / 2 - 80);
+        ctx.shadowBlur = 0;
+
+        ctx.font = 'bold 24px Impact';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`SCORE: ${score.toLocaleString()}`, WIDTH / 2, HEIGHT / 2 - 20);
+
+        ctx.font = 'bold 20px Impact';
+        ctx.fillStyle = '#00dcff';
+        ctx.fillText(`WAVE BONUS: +${(wave * 250).toLocaleString()}`, WIDTH / 2, HEIGHT / 2 + 20);
+
+        ctx.fillStyle = '#ffd23c';
+        ctx.fillText("TAP OR PRESS ENTER FOR NEXT WAVE", WIDTH / 2, HEIGHT / 2 + 70);
+      }
+
+      ctx.restore();
+    }
+
+    function loop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.style.display = 'block';
+    });
+
+    document.getElementById('installBanner').addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          document.getElementById('installBanner').style.display = 'none';
+        }
+        deferredPrompt = null;
+      }
+    });
+  </script>
 </body>
 </html>
