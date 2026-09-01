@@ -18,13 +18,12 @@ source.include_exts = py,png,jpg,kv,atlas,wav,mp3,ogg,dat
 version = 1.0
 
 # (list) Application requirements
-# comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,pygame
+requirements = python3,pygame-ce
 
-# (str) Supported orientation (one of landscape, sensorLandscape, portrait or all)
+# (str) Supported orientation
 orientation = portrait
 
-# (bool) Indicate if the application should be fullscreen or not
+# (bool) Fullscreen
 fullscreen = 0
 
 # (list) Permissions
@@ -36,20 +35,17 @@ android.api = 33
 # (int) Minimum API supported
 android.minapi = 21
 
-# (str) Android NDK version to use
+# (str) Android NDK version
 android.ndk = 25b
-
-# (bool) Use --private data storage (True) or --dir public storage (False)
-android.private_storage = True
 
 # (bool) Accept SDK license
 android.accept_sdk_license = True
 
-# (str) The Android archs to build for
-android.archs = arm64-v8a, armeabi-v7a
+# (str) The Android archs to build for (arm64-v8a is modern 64-bit Android)
+android.archs = arm64-v8a
 
-# (bool) Copy library instead of making a libpymodules.so
-android.copy_libs = 1
+# (str) Bootstrap to use
+p4a.bootstrap = sdl2
 
 [buildozer]
 log_level = 2
